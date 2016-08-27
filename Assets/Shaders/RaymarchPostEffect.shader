@@ -188,10 +188,10 @@
 
 			float4 RayMarch(float3 rayStart, float3 rayDir)
 			{
-				const float dMin = 0.001;
+				const float dMin = 0.01;
 
 				float3 p = rayStart;
-				for (int i = 0; i < 64; i++) {
+				for (int i = 0; i < 128; i++) {
 					float d = map(p);
 
 					if (d < dMin) {
