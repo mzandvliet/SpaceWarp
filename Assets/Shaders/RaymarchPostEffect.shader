@@ -172,14 +172,18 @@
 				);
 			}
 
-			// Todo
-			float3 render(float3 p, float r) {
+
+			float3 render(float3 p, float3 r) {
 				const float3 l = normalize(float3(-1, 4, -2)); // single const direction light
 
 				float3 n = mapNormal(p);
 				float3 c = float3(1, 0, 0);
 				c = lambert(n, l, r, c, 1, 1.4);
 				return c;
+			}
+
+			float3 renderPerf(float3 p, float r, float numSteps) {
+				return lerp(float3(1, 1, 1), float3(1, 0, 0), numSteps);
 			}
 
 			//-----------------------------------------------------------------------------------------
@@ -189,13 +193,17 @@
 			float4 RayMarch(float3 rayStart, float3 rayDir)
 			{
 				const float dMin = 0.01;
+				const int maxSteps = 128;
+				const float maxStepsInv = 1.0 / (float)maxSteps;
 
 				float3 p = rayStart;
-				for (int i = 0; i < 128; i++) {
+				
+				for (int i = 0; i < maxSteps; i++) {
 					float d = map(p);
 
 					if (d < dMin) {
 						return float4(render(p, rayDir), 1);
+						//return float4(renderPerf(p, rayDir, (float)i * maxStepsInv), 1);
 					}
 
 					p += rayDir * d;
