@@ -51,21 +51,7 @@ Shader "ImageEffects/RaymarchPostEffect"
             sampler2D _MainTex;
             float _MaxRayLength;
 
-            /*
-
-            Todo:
-
-            Reduce per pixel ray/map evaluation by culling (e.g. this ray will never hit this element of map())
-
-            - lods?
-            - adaptive or sparse mapping
-
-            Quality increase
-
-            - adaptive supersampling for antialiasing
-
-            */
-
+         
             //-----------------------------------------------------------------------------------------
             // Distance Field Operators
             //-----------------------------------------------------------------------------------------
@@ -117,131 +103,11 @@ Shader "ImageEffects/RaymarchPostEffect"
             //-----------------------------------------------------------------------------------------
 
             float sinOsc(float freq) {
-                return sin(0.0 * PI * freq); //_Time[1]
+                return sin(_Time[1] * PI * freq); //_Time[1]
             }
 
             float toDc(float val) {
                 return 0.5 + 0.5 * val;
-            }
-
-            //-----------------------------------------------------------------------------------------
-            // Scene Mapping
-            //-----------------------------------------------------------------------------------------
-
-            float sphereFloor(float3 p, float3 c) {
-                //float3 q = fmod(p, c) - 0.5 * c;
-
-                p.y +=
-                    sin(frac(p.x / 16 + _Time[1] * 0.5) * PI) * _SinTime[3] *
-                    sin(frac(p.z / 16 + _Time[1] * 0.25) * PI) * _SinTime[2] *
-                    4;
-
-                float r = sin(frac(p.x / 16 + _Time[1] * 0.5) * PI) * _SinTime[3] *
-                    sin(frac(p.z / 16 + _Time[1] * 0.25) * PI) * _SinTime[2] *
-                    0.5 + 0.5;
-
-                float3 q = p;
-                q.x = fmod(p.x, c.x) - 0.5 * c.x;
-                q.z = fmod(p.z, c.z) - 0.5 * c.z;
-                return sdSphere(q, float3(0, -1, 0), r);
-            }
-
-            float sdAnimatedSpheres(float3 p) {
-                return sdSMin(
-                    sdSphere(p, float3(-1, 0, 0), (0.5 + 0.5 * toDc(sinOsc(1.0)) * 1)),
-                    sdSphere(p, float3( 1, 0, 0), (0.3 + 0.7 * toDc(sinOsc(1.1)) * 2)),
-                    8
-                );
-            }
-
-            float sdMorpingBoxSpheres(float3 p) {
-                return sdBlend(
-                    sdAnimatedSpheres(p),
-                    sdBox(p, float3(0, 0, 0), float3(2, 1, 1)),
-                    toDc(sinOsc(0.45))
-                );
-            }
-
-            float map(float3 p) {
-                /*
-                // Todo: lol this is the worst idea for rendering distance field compositions
-                const int numPrims = 8;
-                float d = 999999.0;
-                for (uint i = 0; i < numPrims; i++) {
-                    float4 primInfo = tex2D(_primBuffer, half2(i / numPrims + (1.0/numPrims), 0));
-                    d = min(d, sdSphere(p, primInfo.xyz, primInfo.w));
-                }
-                return d;
-                */
-
-                return sdSMin(sdSphere(p, float3(0, 0, 0), 1), sdMorpingBoxSpheres(p));
-            }
-
-            //-----------------------------------------------------------------------------------------
-            // Lighting
-            //-----------------------------------------------------------------------------------------
-            
-            float3 lambert(float3 n, float3 l, float3 r, float3 albedo, float specPow, float specGloss) {
-                // Simple lambert with specular
-                float nDotL = max(dot(n, l), 0);
-                float3 h = (l - r) * 0.5;
-                float s = pow(dot(n, h), specPow) * specGloss;
-                return albedo * nDotL * s;
-            }
-
-            // Todo: can we generalize lighting functions and pass then a context defined here?
-            // Function pointers or macros or something
-
-            float3 mapNormal(float3 p) {
-                const float eps = 0.001;
-
-                return normalize(
-                    float3(
-                        map(p + float3(eps, 0, 0)) - map(p - float3(eps, 0, 0)),
-                        map(p + float3(0, eps, 0)) - map(p - float3(0, eps, 0)),
-                        map(p + float3(0, 0, eps)) - map(p - float3(0, 0, eps))
-                        )
-                );
-            }
-
-
-            float3 render(float3 p, float3 r) {
-                const float3 l = normalize(float3(-1, 4, -2)); // single const direction light
-
-                float3 n = mapNormal(p);
-                float3 c = float3(1, 0, 0);
-                c = lambert(n, l, r, c, 1, 1.4);
-                return c;
-            }
-
-            float3 renderPerf(float3 p, float r, float numSteps) {
-                return lerp(float3(1, 1, 1), float3(1, 0, 0), numSteps);
-            }
-
-            //-----------------------------------------------------------------------------------------
-            // RayMarch
-            //-----------------------------------------------------------------------------------------
-
-            float4 RayMarch(float3 rayStart, float3 rayDir)
-            {
-                const float dMin = 0.01;
-                const int maxSteps = 512;
-                const float maxStepsInv = 1.0 / (float)maxSteps;
-
-                float3 p = rayStart;
-                
-                for (int i = 0; i < maxSteps; i++) {
-                    float d = map(p);
-
-                    if (d < dMin) {
-                        return float4(render(p, rayDir), 1);
-                        //return float4(renderPerf(p, rayDir, (float)i * maxStepsInv), 1);
-                    }
-
-                    p += rayDir * d;
-                }
-
-                return float4(1, 1, 1, 1);
             }
 
             float mod289(float x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
@@ -271,6 +137,129 @@ Shader "ImageEffects/RaymarchPostEffect"
             }
 
             //-----------------------------------------------------------------------------------------
+            // Scene Mapping
+            //-----------------------------------------------------------------------------------------
+
+            float sdAnimatedSpheres(float3 p) {
+                return sdSMin(
+                    sdSphere(p, float3(-1, 0, 0), (0.5 + 0.5 * toDc(sinOsc(1.0)) * 1)),
+                    sdSphere(p, float3( 1, 0, 0), (0.3 + 0.7 * toDc(sinOsc(1.1)) * 2)),
+                    8
+                );
+            }
+
+            float sdMorpingBoxSpheres(float3 p, float3 c) {
+                return sdBlend(
+                    sdAnimatedSpheres(p),
+                    sdBox(p, c, float3(2, 1, 1)),
+                    toDc(sinOsc(0.45))
+                );
+            }
+
+            float map(float3 p) {
+                return min(
+                    sdBox(p, float3(0, -1, 0), float3(10, 1, 10)),
+                    sdSMin(sdSphere(p, float3(0, 1, 0), 1), sdMorpingBoxSpheres(p, float3(0,1,0)))
+                );
+            }
+
+            //-----------------------------------------------------------------------------------------
+            // Lighting
+            //-----------------------------------------------------------------------------------------
+            
+            float3 lambert(float3 n, float3 l, float3 r, float3 albedo, float specPow, float specGloss) {
+                // Simple lambert with specular
+                float nDotL = max(dot(n, l), 0);
+                float3 h = (l - r) * 0.5;
+                float s = pow(dot(n, h), specPow) * specGloss;
+                return albedo * nDotL * s;
+            }
+
+            float shade(float3 rayStart, float3 rayDir) {
+                const float dMin = 0.01;
+                const int maxSteps = 512;
+                const float maxDist = 512.0;
+
+                float dist = 0;
+
+                for (int i = 0; i < maxSteps; i++) {
+                    float3 p = rayStart + rayDir * dist;
+                    float d = map(p);
+
+                    if (dist > maxDist || d < dMin) {
+                        return 0.1;
+                    }
+
+                    dist += d;
+                }
+
+                return 1.0;
+            }
+
+            // Todo: can we generalize lighting functions and pass then a context defined here?
+            // Function pointers or macros or something
+
+            float3 mapNormal(float3 p) {
+                const float eps = 0.001;
+
+                // Expensive finite differencing
+
+                return normalize(
+                    float3(
+                        map(p + float3(eps, 0, 0)) - map(p - float3(eps, 0, 0)),
+                        map(p + float3(0, eps, 0)) - map(p - float3(0, eps, 0)),
+                        map(p + float3(0, 0, eps)) - map(p - float3(0, 0, eps))
+                    )
+                );
+            }
+
+
+            float3 render(float3 p, float3 r) {
+                const float3 l = normalize(float3(-1, 3, -4)); // single const direction light
+
+                float3 n = mapNormal(p);
+                float3 c = float3(1, 1, 1);
+                c = lambert(n, l, r, c, 1, 1.4);
+                c *= shade(p + n * 0.1, l); // Trick: offset march start pos to get out of min-distance region
+                c += float3(0.1, 0.1, 0.2);
+                return c;
+            }
+
+            float3 renderPerf(float3 p, float r, float numSteps) {
+                return lerp(float3(1, 1, 1), float3(1, 0, 0), numSteps);
+            }
+
+            //-----------------------------------------------------------------------------------------
+            // RayMarch
+            //-----------------------------------------------------------------------------------------
+
+            // Todo: limit distance
+
+            float4 rayMarch(float3 rayStart, float3 rayDir)
+            {
+                const float dMin = 0.01;
+                const int maxSteps = 512;
+                const float maxStepsInv = 1.0 / (float)maxSteps;
+                const float maxDist = 512.0;
+
+                float dist = 0;
+                
+                for (int i = 0; i < maxSteps; i++) {
+                    float3 p = rayStart + rayDir * dist;
+                    float d = map(p);
+
+                    if (dist > maxDist || d < dMin) {
+                        return float4(render(p, rayDir), 1);
+                        //return float4(renderPerf(p, rayDir, (float)i * maxStepsInv), 1);
+                    }
+
+                    dist += d;
+                }
+
+                return float4(0.3, 0.2, 0.7, 1);
+            }
+
+            //-----------------------------------------------------------------------------------------
             // Fragment Shader
             //-----------------------------------------------------------------------------------------
 
@@ -282,10 +271,10 @@ Shader "ImageEffects/RaymarchPostEffect"
 
                 float3 wpos = i.wpos;
                 float3 rayStart = _WorldSpaceCameraPos;
-                float3 rayDir = normalize(wpos - _WorldSpaceCameraPos//);
-                    + noise(float3(-1.0 + 2.0 * i.uv.x, -1.0 + 2.0 * i.uv.y, _Time[3] * 10) * 10.0));
+                float3 rayDir = normalize(wpos - _WorldSpaceCameraPos);
+                    //+ noise(float3(-1.0 + 2.0 * i.uv.x, -1.0 + 2.0 * i.uv.y, _Time[3] * 10) * 10.0));
 
-                float4 color = RayMarch(rayStart, rayDir);
+                float4 color = rayMarch(rayStart, rayDir);
 
                 return color;
             }
