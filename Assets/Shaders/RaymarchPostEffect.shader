@@ -103,7 +103,7 @@ Shader "ImageEffects/RaymarchPostEffect"
             //-----------------------------------------------------------------------------------------
 
             float sinOsc(float freq) {
-                return sin(_Time[1] * PI * freq); //_Time[1]
+                return sin(0.0 * PI * freq); //_Time[1]
             }
 
             float toDc(float val) {
@@ -158,7 +158,7 @@ Shader "ImageEffects/RaymarchPostEffect"
 
             float map(float3 p) {
                 return min(
-                    sdBox(p, float3(0, -1, 0), float3(10, 1, 10)),
+                    sdBox(p, float3(0, -0.7, 0), float3(10, 1, 10)),
                     sdSMin(sdSphere(p, float3(0, 1, 0), 1), sdMorpingBoxSpheres(p, float3(0,1,0)))
                 );
             }
@@ -176,7 +176,7 @@ Shader "ImageEffects/RaymarchPostEffect"
             }
 
             float shade(float3 rayStart, float3 rayDir) {
-                const float dMin = 0.01;
+                const float dMin = 0.001;
                 const int maxSteps = 512;
                 const float maxDist = 512.0;
 
@@ -237,7 +237,7 @@ Shader "ImageEffects/RaymarchPostEffect"
 
             float4 rayMarch(float3 rayStart, float3 rayDir)
             {
-                const float dMin = 0.01;
+                const float dMin = 0.001;
                 const int maxSteps = 512;
                 const float maxStepsInv = 1.0 / (float)maxSteps;
                 const float maxDist = 512.0;
