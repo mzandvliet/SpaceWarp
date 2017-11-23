@@ -263,6 +263,8 @@ Shader "ImageEffects/RaymarchPostEffect"
             // Fragment Shader
             //-----------------------------------------------------------------------------------------
 
+            float rand(float n) { return frac(sin(n) * 43758.5453123); }
+
             fixed4 frag (v2f i) : SV_Target
             {
                 //float2 uv = i.uv.xy;
@@ -271,11 +273,24 @@ Shader "ImageEffects/RaymarchPostEffect"
 
                 float3 wpos = i.wpos;
                 float3 rayStart = _WorldSpaceCameraPos;
-                float3 rayDir = normalize(wpos - _WorldSpaceCameraPos);
-                    //+ noise(float3(-1.0 + 2.0 * i.uv.x, -1.0 + 2.0 * i.uv.y, _Time[3] * 10) * 10.0));
 
-                float4 color = rayMarch(rayStart, rayDir);
+                float4 color = float4(0, 0, 0, 0);
+                // Crude multisampling for anti-aliasing
+                const int raysPerPix = 5;
+                const float raysPerPixF = (float)raysPerPix;
+                for (int r = 0; r < raysPerPix; r++) {
+                    float3 noise = float3(
+                        rand(0.1 * (float)r),
+                        rand(0.2 * (float)r),
+                        rand(0.3 * (float)r));
 
+                    float3 rayDir = normalize(wpos - _WorldSpaceCameraPos + noise);
+
+                    float4 c = rayMarch(rayStart, rayDir);
+                    color += c;
+                }
+                color /= raysPerPixF;
+               
                 return color;
             }
             ENDCG
