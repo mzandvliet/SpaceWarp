@@ -58,7 +58,7 @@ Shader "ImageEffects/RaymarchPostEffect"
 
             #define PI 3.14159265
 
-            float sdSMin(float a, float b, float k = 32) {
+            float sdSMin(float a, float b, float k = 16) {
                 float res = exp(-k * a) + exp(-k * b);
                 return -log(max(0.0001, res)) / k;
             }
@@ -103,7 +103,7 @@ Shader "ImageEffects/RaymarchPostEffect"
             //-----------------------------------------------------------------------------------------
 
             float sinOsc(float freq) {
-                return sin(0.0 * PI * freq); //_Time[1]
+                return sin(_Time[1] * PI * freq); //_Time[1]
             }
 
             float toDc(float val) {
@@ -142,8 +142,8 @@ Shader "ImageEffects/RaymarchPostEffect"
 
             float sdAnimatedSpheres(float3 p) {
                 return sdSMin(
-                    sdSphere(p, float3(-1, 0, 0), (0.5 + 0.5 * toDc(sinOsc(1.0)) * 1)),
-                    sdSphere(p, float3( 1, 0, 0), (0.3 + 0.7 * toDc(sinOsc(1.1)) * 2)),
+                    sdSphere(p, float3(-1, 1, 0), (0.5 + 0.5 * toDc(sinOsc(1.0)) * 1)),
+                    sdSphere(p, float3( 1, 1, 0), (0.3 + 0.7 * toDc(sinOsc(1.1)) * 2)),
                     8
                 );
             }
@@ -177,7 +177,7 @@ Shader "ImageEffects/RaymarchPostEffect"
 
             float shade(float3 rayStart, float3 rayDir) {
                 const float dMin = 0.001;
-                const int maxSteps = 32;
+                const int maxSteps = 64;
                 const float maxDist = 32.0;
 
                 float dist = 0;
@@ -186,7 +186,10 @@ Shader "ImageEffects/RaymarchPostEffect"
                     float3 p = rayStart + rayDir * dist;
                     float d = map(p);
 
-                    if (dist > maxDist || d < dMin) {
+                    if (dist > maxDist) {
+                        return 1.0;
+                    }
+                    if (d < dMin) {
                         return 0.0;
                     }
 
@@ -219,8 +222,8 @@ Shader "ImageEffects/RaymarchPostEffect"
 
                 float3 n = mapNormal(p);
                 float3 c = float3(1, 1, 1); // Base material color
-                c = lambert(n, l, r, c, 1, 1.4);
-                c *= shade(p + n * 0.1, l); // Trick: offset march start pos to get out of min-distance region
+                c = lambert(n, l, r, c, 1.5, 1.1);
+                c *= shade(p + n * 0.05, l); // Trick: offset march start pos to get out of min-distance region
                 c += float3(0.1, 0.1, 0.2);
                 return c;
             }
