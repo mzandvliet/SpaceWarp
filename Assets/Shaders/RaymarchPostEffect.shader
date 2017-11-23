@@ -177,8 +177,8 @@ Shader "ImageEffects/RaymarchPostEffect"
 
             float shade(float3 rayStart, float3 rayDir) {
                 const float dMin = 0.001;
-                const int maxSteps = 512;
-                const float maxDist = 512.0;
+                const int maxSteps = 32;
+                const float maxDist = 32.0;
 
                 float dist = 0;
 
@@ -187,7 +187,7 @@ Shader "ImageEffects/RaymarchPostEffect"
                     float d = map(p);
 
                     if (dist > maxDist || d < dMin) {
-                        return 0.1;
+                        return 0.0;
                     }
 
                     dist += d;
@@ -215,10 +215,10 @@ Shader "ImageEffects/RaymarchPostEffect"
 
 
             float3 render(float3 p, float3 r) {
-                const float3 l = normalize(float3(-1, 3, -4)); // single const direction light
+                const float3 l = normalize(float3(-5, 3, -3)); // single const direction light
 
                 float3 n = mapNormal(p);
-                float3 c = float3(1, 1, 1);
+                float3 c = float3(1, 1, 1); // Base material color
                 c = lambert(n, l, r, c, 1, 1.4);
                 c *= shade(p + n * 0.1, l); // Trick: offset march start pos to get out of min-distance region
                 c += float3(0.1, 0.1, 0.2);
@@ -238,25 +238,31 @@ Shader "ImageEffects/RaymarchPostEffect"
             float4 rayMarch(float3 rayStart, float3 rayDir)
             {
                 const float dMin = 0.001;
-                const int maxSteps = 512;
+                const int maxSteps = 128;
                 const float maxStepsInv = 1.0 / (float)maxSteps;
-                const float maxDist = 512.0;
+                const float maxDist = 32.0;
+
+                const float4 background = float4(0.3, 0.2, 0.7, 1);
 
                 float dist = 0;
-                
+                float4 c;
                 for (int i = 0; i < maxSteps; i++) {
                     float3 p = rayStart + rayDir * dist;
                     float d = map(p);
 
-                    if (dist > maxDist || d < dMin) {
+                    if (dist > maxDist) {
+                        // Escape? background color
+                        return background;
+                    }
+                    if (d < dMin) {
+                        // Hit boundary? object color
                         return float4(render(p, rayDir), 1);
-                        //return float4(renderPerf(p, rayDir, (float)i * maxStepsInv), 1);
                     }
 
                     dist += d;
                 }
 
-                return float4(0.3, 0.2, 0.7, 1);
+                return background;
             }
 
             //-----------------------------------------------------------------------------------------
@@ -274,10 +280,10 @@ Shader "ImageEffects/RaymarchPostEffect"
                 float3 wpos = i.wpos;
                 float3 rayStart = _WorldSpaceCameraPos;
 
-                float4 color = float4(0, 0, 0, 0);
                 // Crude multisampling for anti-aliasing
                 const int raysPerPix = 5;
                 const float raysPerPixF = (float)raysPerPix;
+                float4 color = float4(0, 0, 0, 0);
                 for (int r = 0; r < raysPerPix; r++) {
                     float3 noise = float3(
                         rand(0.1 * (float)r),
@@ -286,8 +292,7 @@ Shader "ImageEffects/RaymarchPostEffect"
 
                     float3 rayDir = normalize(wpos - _WorldSpaceCameraPos + noise);
 
-                    float4 c = rayMarch(rayStart, rayDir);
-                    color += c;
+                    color += rayMarch(rayStart, rayDir);
                 }
                 color /= raysPerPixF;
                
