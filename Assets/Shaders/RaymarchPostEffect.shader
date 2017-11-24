@@ -176,7 +176,7 @@ Shader "ImageEffects/RaymarchPostEffect"
             }
 
             float shade(float3 rayStart, float3 rayDir) {
-                const float dMin = 0.001;
+                const float dMin = 0.0033;
                 const int maxSteps = 64;
                 const float maxDist = 32.0;
 
@@ -222,9 +222,9 @@ Shader "ImageEffects/RaymarchPostEffect"
 
                 float3 n = mapNormal(p);
                 float3 c = float3(1, 1, 1); // Base material color
-                c = lambert(n, l, r, c, 1.5, 1.1);
+                c = lambert(n, l, r, c, 2.0, 1.0);
                 c *= shade(p + n * 0.05, l); // Trick: offset march start pos to get out of min-distance region
-                c += float3(0.1, 0.1, 0.2);
+                c += float3(0.1, 0.1, 0.2); // constant ambient term
                 return c;
             }
 
@@ -240,7 +240,7 @@ Shader "ImageEffects/RaymarchPostEffect"
 
             float4 rayMarch(float3 rayStart, float3 rayDir)
             {
-                const float dMin = 0.001;
+                const float dMin = 0.0033;
                 const int maxSteps = 128;
                 const float maxStepsInv = 1.0 / (float)maxSteps;
                 const float maxDist = 32.0;
@@ -248,7 +248,6 @@ Shader "ImageEffects/RaymarchPostEffect"
                 const float4 background = float4(0.3, 0.2, 0.7, 1);
 
                 float dist = 0;
-                float4 c;
                 for (int i = 0; i < maxSteps; i++) {
                     float3 p = rayStart + rayDir * dist;
                     float d = map(p);
