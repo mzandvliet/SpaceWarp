@@ -177,8 +177,8 @@ Shader "ImageEffects/RaymarchPostEffect"
 
             float shade(float3 rayStart, float3 rayDir) {
                 const float dMin = 0.0033;
-                const int maxSteps = 64;
-                const float maxDist = 32.0;
+                const int maxSteps = 128;
+                const float maxDist = 16;
 
                 float dist = 0;
 
