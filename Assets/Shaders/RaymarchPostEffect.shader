@@ -256,7 +256,7 @@ Shader "ImageEffects/RaymarchPostEffect" {
 
                 // Crude multisampling for anti-aliasing
 
-                const int raysPerPix = 5;
+                const int raysPerPix = 1;
                 const float raysPerPixF = (float)raysPerPix;
 
                 float4 color = float4(0, 0, 0, 0);

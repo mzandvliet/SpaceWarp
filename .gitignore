@@ -3,3 +3,4 @@ Library/
 *.sln
 Temp/
 .vs/
+Build/
